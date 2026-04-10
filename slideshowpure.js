@@ -799,7 +799,7 @@ const ApiUtils = {
       console.log("Fetching random items from server...");
 
       const response = await fetch(
-        `${STATE.jellyfinData.serverAddress}/Items?IncludeItemTypes=Movie,Series&Recursive=true&hasOverview=true&imageTypes=Logo,Backdrop&sortBy=Random&isPlayed=False&enableUserData=true&Limit=${CONFIG.maxItems}&fields=Id,ImageTags,RemoteTrailers`,
+        `${STATE.jellyfinData.serverAddress}/Items?IncludeItemTypes=Movie,Series&Recursive=true&hasOverview=true&imageTypes=Logo,Backdrop&sortBy=Random&isPlayed=False&enableUserData=true&Limit=${CONFIG.maxItems}&fields=Id,ImageTags`,
         {
           headers: this.getAuthHeaders(),
         },
@@ -1513,35 +1513,8 @@ const SlideshowManager = {
     this.preloadAdjacentSlides(index);
 
     const itemData = STATE.slideshow.loadedItems[currentItemId];
-    const hasTrailerData = CONFIG.enableTrailers && itemData && itemData.RemoteTrailers && itemData.RemoteTrailers.length > 0;
 
-    if (hasTrailerData) {
-      setTimeout(() => {
-        if (STATE.slideshow.currentSlideIndex === index && !STATE.slideshow.isPaused) {
-          const player = STATE.slideshow.players[currentItemId];
-
-          if (player && typeof player.playVideo === "function") {
-            try {
-              if (STATE.slideshow.isMuted) {
-                player.mute();
-              } else {
-                player.unMute();
-                player.setVolume(50);
-              }
-
-              player.seekTo(0);
-              player.playVideo();
-            } catch (e) {
-              fallbackToTimer();
-            }
-          } else {
-            fallbackToTimer();
-          }
-        }
-      }, 3500);
-    } else {
-      fallbackToTimer();
-    }
+    fallbackToTimer();
 
     function fallbackToTimer() {
       if (!STATE.slideshow.isPaused && STATE.slideshow.slideInterval) {
