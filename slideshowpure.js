@@ -21,7 +21,7 @@ const CONFIG = {
   preloadCount: 3,
   fadeTransitionDuration: 500,
   slideAnimationEnabled: true,
-  enableTrailers: true,
+  enableTrailers: false, // Disable trailers
 };
 
 // State management
@@ -53,25 +53,6 @@ const STATE = {
     isMuted: true,
     isVideoPlaying: false,
   },
-};
-
-const loadYouTubeAPI = () => {
-  if (STATE.slideshow.ytPromise) return STATE.slideshow.ytPromise;
-
-  STATE.slideshow.ytPromise = new Promise((resolve) => {
-    if (window.YT && window.YT.Player) {
-      resolve(window.YT);
-      return;
-    }
-    window.onYouTubeIframeAPIReady = () => resolve(window.YT);
-    if (!document.querySelector('script[src*="youtube.com/iframe_api"]')) {
-      const tag = document.createElement("script");
-      tag.src = "https://www.youtube.com/iframe_api";
-      const firstScriptTag = document.getElementsByTagName("script")[0];
-      firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
-    }
-  });
-  return STATE.slideshow.ytPromise;
 };
 
 // Request throttling system
@@ -201,16 +182,16 @@ const initLoadingScreen = () => {
   loadingDiv.className = "bar-loading";
   loadingDiv.id = "page-loader";
   loadingDiv.innerHTML = `
-    <div class="loader-content">
-      <h1>
-        <div class="splashLogo"></div>
-      </h1>
-      <div class="progress-container">
-        <div class="progress-bar" id="progress-bar"></div>
-        <div class="progress-gap" id="progress-gap"></div>
-        <div class="unfilled-bar" id="unfilled-bar"></div>
-      </div>
+  <div class="loader-content">
+    <h1>
+    <div class="splashLogo"></div>
+    </h1>
+    <div class="progress-container">
+    <div class="progress-bar" id="progress-bar"></div>
+    <div class="progress-gap" id="progress-gap"></div>
+    <div class="unfilled-bar" id="unfilled-bar"></div>
     </div>
+  </div>
   `;
   document.body.appendChild(loadingDiv);
 
@@ -257,10 +238,7 @@ const initLoadingScreen = () => {
           finishLoading();
         }
       } else {
-        if (
-          activeTab.children.length > 0 ||
-          activeTab.innerText.trim().length > 0
-        ) {
+        if (activeTab.children.length > 0 || activeTab.innerText.trim().length > 0) {
           finishLoading();
         }
       }
@@ -359,31 +337,21 @@ const waitForApiClientAndInitialize = () => {
       return;
     }
 
-    if (
-      window.ApiClient._currentUser &&
-      window.ApiClient._currentUser.Id &&
-      window.ApiClient._serverInfo &&
-      window.ApiClient._serverInfo.AccessToken
-    ) {
-      console.log(
-        "🔓 User is fully logged in. Starting slideshow initialization...",
-      );
+    if (window.ApiClient._currentUser && window.ApiClient._currentUser.Id && window.ApiClient._serverInfo && window.ApiClient._serverInfo.AccessToken) {
+      console.log("🔓 User is fully logged in. Starting slideshow initialization...");
       clearInterval(window.slideshowCheckInterval);
 
       if (!STATE.slideshow.hasInitialized) {
         initJellyfinData(async () => {
           console.log("✅ Jellyfin API client initialized successfully");
           await initLocalization();
-          await loadYouTubeAPI();
           slidesInit();
         });
       } else {
         console.log("🔄 Slideshow already initialized, skipping");
       }
     } else {
-      console.log(
-        "🔒 Authentication incomplete. Waiting for complete login...",
-      );
+      console.log("🔒 Authentication incomplete. Waiting for complete login...");
     }
   }, CONFIG.retryInterval);
 };
@@ -502,12 +470,12 @@ const SlideUtils = {
     const loadingIndicator = this.createElement("div", {
       className: "slide-loading-indicator",
       innerHTML: `
-        <div class="spinner">
-          <div class="bounce1"></div>
-          <div class="bounce2"></div>
-          <div class="bounce3"></div>
-        </div>
-      `,
+    <div class="spinner">
+      <div class="bounce1"></div>
+      <div class="bounce2"></div>
+      <div class="bounce3"></div>
+    </div>
+    `,
     });
     return loadingIndicator;
   },
@@ -578,10 +546,7 @@ const LocalizationUtils = {
     }
     if (locale.length === 3) {
       const countriesData = await window.ApiClient.getCountries();
-      const countryData = Object.values(countriesData).find(
-        (countryData) =>
-          countryData.ThreeLetterISORegionName === locale.toUpperCase(),
-      );
+      const countryData = Object.values(countriesData).find((countryData) => countryData.ThreeLetterISORegionName === locale.toUpperCase());
       if (countryData) {
         locale = countryData.TwoLetterISORegionName.toLowerCase();
       }
@@ -608,11 +573,7 @@ const LocalizationUtils = {
         const resources = window.performance.getEntriesByType("resource");
         for (const resource of resources) {
           const url = resource.name || resource.url;
-          if (
-            url &&
-            url.includes(`${localePrefix}-json`) &&
-            url.includes(".chunk.js")
-          ) {
+          if (url && url.includes(`${localePrefix}-json`) && url.includes(".chunk.js")) {
             this.chunkUrlCache[localePrefix] = url;
             return url;
           }
@@ -647,9 +608,7 @@ const LocalizationUtils = {
 
         const response = await fetch(chunkUrl);
         if (!response.ok) {
-          throw new Error(
-            `Failed to fetch translations: ${response.statusText}`,
-          );
+          throw new Error(`Failed to fetch translations: ${response.statusText}`);
         }
 
         /**
@@ -659,7 +618,7 @@ const LocalizationUtils = {
          * "use strict";
          * (self.webpackChunk = self.webpackChunk || []).push([[62634], {
          *   30985: function(e) {
-         *     e.exports = JSON.parse('{"Absolute":"..."}')
+         *   e.exports = JSON.parse('{"Absolute":"..."}')
          *   }
          * }]);
          * ```
@@ -671,19 +630,12 @@ const LocalizationUtils = {
          */
         const chunkText = await response.text();
 
-        const replaceEscaped = (text) =>
-          text
-            .replace(/\\"/g, '"')
-            .replace(/\\n/g, "\n")
-            .replace(/\\\\/g, "\\")
-            .replace(/\\'/g, "'");
+        const replaceEscaped = (text) => text.replace(/\\"/g, '"').replace(/\\n/g, "\n").replace(/\\\\/g, "\\").replace(/\\'/g, "'");
         try {
           const START = /^(.*)JSON\.parse\(['"]/gms;
           const END = /['"]?\)?\s*}?(\r\n|\r|\n)?}?]?\)?;(\r\n|\r|\n)?$/gms;
 
-          const jsonString = replaceEscaped(
-            chunkText.replace(START, "").replace(END, ""),
-          );
+          const jsonString = replaceEscaped(chunkText.replace(START, "").replace(END, ""));
           this.translations[locale] = JSON.parse(jsonString);
           return;
         } catch (e) {
@@ -759,12 +711,9 @@ const ApiUtils = {
         return STATE.slideshow.loadedItems[itemId];
       }
 
-      const response = await fetch(
-        `${STATE.jellyfinData.serverAddress}/Items/${itemId}`,
-        {
-          headers: this.getAuthHeaders(),
-        },
-      );
+      const response = await fetch(`${STATE.jellyfinData.serverAddress}/Items/${itemId}`, {
+        headers: this.getAuthHeaders(),
+      });
 
       if (!response.ok) {
         throw new Error(`Failed to fetch item details: ${response.statusText}`);
@@ -788,18 +737,14 @@ const ApiUtils = {
   async getSkipSegments(videoId) {
     try {
       const categories = '["intro","sponsor","selfpromo","interaction"]';
-      const response = await fetch(
-        `https://sponsor.ajay.app/api/skipSegments?videoID=${videoId}&categories=${categories}`,
-      );
+      const response = await fetch(`https://sponsor.ajay.app/api/skipSegments?videoID=${videoId}&categories=${categories}`);
 
       if (response.status === 200) {
         const segments = await response.json();
         const introSegment = segments.find((s) => s.segment[0] < 5);
 
         if (introSegment) {
-          console.log(
-            `[SponsorBlock] Skipping intro for ${videoId}. Start at: ${introSegment.segment[1]}`,
-          );
+          console.log(`[SponsorBlock] Skipping intro for ${videoId}. Start at: ${introSegment.segment[1]}`);
           return Math.ceil(introSegment.segment[1]);
         }
       }
@@ -841,18 +786,12 @@ const ApiUtils = {
    */
   async fetchItemIdsFromServer() {
     try {
-      if (
-        !STATE.jellyfinData.accessToken ||
-        STATE.jellyfinData.accessToken === "Not Found"
-      ) {
+      if (!STATE.jellyfinData.accessToken || STATE.jellyfinData.accessToken === "Not Found") {
         console.warn("Access token not available. Delaying API request...");
         return [];
       }
 
-      if (
-        !STATE.jellyfinData.serverAddress ||
-        STATE.jellyfinData.serverAddress === "Not Found"
-      ) {
+      if (!STATE.jellyfinData.serverAddress || STATE.jellyfinData.serverAddress === "Not Found") {
         console.warn("Server address not available. Delaying API request...");
         return [];
       }
@@ -867,22 +806,16 @@ const ApiUtils = {
       );
 
       if (!response.ok) {
-        console.error(
-          `Failed to fetch items: ${response.status} ${response.statusText}`,
-        );
+        console.error(`Failed to fetch items: ${response.status} ${response.statusText}`);
         return [];
       }
 
       const data = await response.json();
       const items = data.Items || [];
 
-      console.log(
-        `Successfully fetched ${items.length} random items from server`,
-      );
+      console.log(`Successfully fetched ${items.length} random items from server`);
 
-      return items
-        .filter((item) => item.ImageTags && item.ImageTags.Logo)
-        .map((item) => item.Id);
+      return items.filter((item) => item.ImageTags && item.ImageTags.Logo).map((item) => item.Id);
     } catch (error) {
       console.error("Error fetching item IDs:", error);
       return [];
@@ -919,9 +852,7 @@ const ApiUtils = {
       });
 
       if (!playResponse.ok) {
-        throw new Error(
-          `Failed to send play command: ${playResponse.statusText}`,
-        );
+        throw new Error(`Failed to send play command: ${playResponse.statusText}`);
       }
 
       console.log("Play command sent successfully to session:", sessionId);
@@ -938,14 +869,9 @@ const ApiUtils = {
    */
   async getSessionId() {
     try {
-      const response = await fetch(
-        `${
-          STATE.jellyfinData.serverAddress
-        }/Sessions?deviceId=${encodeURIComponent(STATE.jellyfinData.deviceId)}`,
-        {
-          headers: this.getAuthHeaders(),
-        },
-      );
+      const response = await fetch(`${STATE.jellyfinData.serverAddress}/Sessions?deviceId=${encodeURIComponent(STATE.jellyfinData.deviceId)}`, {
+        headers: this.getAuthHeaders(),
+      });
 
       if (!response.ok) {
         throw new Error(`Failed to fetch session data: ${response.statusText}`);
@@ -954,10 +880,7 @@ const ApiUtils = {
       const sessions = await response.json();
 
       if (!sessions || sessions.length === 0) {
-        console.warn(
-          "No sessions found for deviceId:",
-          STATE.jellyfinData.deviceId,
-        );
+        console.warn("No sessions found for deviceId:", STATE.jellyfinData.deviceId);
         return null;
       }
 
@@ -1054,19 +977,13 @@ const VisibilityObserver = {
 
     if (!container) return;
 
-    const isVisible =
-      (window.location.hash === "#/home.html" ||
-        window.location.hash === "#/home") &&
-      activeTab.getAttribute("data-index") === "0";
+    const isVisible = (window.location.hash === "#/home.html" || window.location.hash === "#/home") && activeTab.getAttribute("data-index") === "0";
 
     container.style.display = isVisible ? "block" : "none";
 
     if (isVisible && !this.wasVisible) {
-      const currentItemId =
-        STATE.slideshow.itemIds[STATE.slideshow.currentSlideIndex];
-      const currentSlide = document.querySelector(
-        `.slide[data-item-id="${currentItemId}"]`,
-      );
+      const currentItemId = STATE.slideshow.itemIds[STATE.slideshow.currentSlideIndex];
+      const currentSlide = document.querySelector(`.slide[data-item-id="${currentItemId}"]`);
       const player = STATE.slideshow.players[currentItemId];
 
       if (currentSlide && player) {
@@ -1114,11 +1031,7 @@ const VisibilityObserver = {
 
   handleClick(event) {
     const target = event.target;
-    if (
-      target.closest(".emby-tab-button") ||
-      target.closest(".pageTabButton") ||
-      target.closest(".navMenuOption")
-    ) {
+    if (target.closest(".emby-tab-button") || target.closest(".pageTabButton") || target.closest(".navMenuOption")) {
       VisibilityObserver.updateVisibility();
     }
   },
@@ -1151,11 +1064,7 @@ const SlideCreator = {
     let tag = null;
 
     if (imageType === "Backdrop") {
-      if (
-        item.BackdropImageTags &&
-        Array.isArray(item.BackdropImageTags) &&
-        item.BackdropImageTags.length > 0
-      ) {
+      if (item.BackdropImageTags && Array.isArray(item.BackdropImageTags) && item.BackdropImageTags.length > 0) {
         const backdropIndex = index !== undefined ? index : 0;
         if (backdropIndex < item.BackdropImageTags.length) {
           tag = item.BackdropImageTags[backdropIndex];
@@ -1190,7 +1099,7 @@ const SlideCreator = {
    * Creates a slide element for an item
    * @param {Object} item - Item data
    * @param {string} title - Title type (Movie/TV Show)
-   * @returns {Object} Object containing slide, videoId, and container
+   * @returns {Object} Object containing slide
    */
   createSlideElement(item, title) {
     if (!item || !item.Id) {
@@ -1205,40 +1114,6 @@ const SlideCreator = {
       className: "slide",
       "data-item-id": itemId,
     });
-
-    let videoId = null;
-    let trailerContainer = null;
-
-    if (
-      CONFIG.enableTrailers &&
-      item.RemoteTrailers &&
-      item.RemoteTrailers.length > 0
-    ) {
-      try {
-        const urlObj = new URL(item.RemoteTrailers[0].Url);
-        videoId = urlObj.searchParams.get("v");
-      } catch (e) {}
-
-      if (videoId) {
-        // trailerContainer = SlideUtils.createElement("div", {
-        //   className: "video-container",
-        //   id: `trailer-${item.Id}`,
-        //   style: { width: `calc(100vh * 1.777)` },
-        // });
-        trailerContainer = SlideUtils.createElement("div", {
-          className: "video-container",
-          id: `trailer-${item.Id}`,
-        });
-
-        const playerDiv = SlideUtils.createElement("div", {
-          className: "video-player",
-          id: `yt-player-${item.Id}`,
-        });
-
-        trailerContainer.appendChild(playerDiv);
-        slide.appendChild(trailerContainer);
-      }
-    }
 
     const backdrop = SlideUtils.createElement("img", {
       className: "backdrop high-quality",
@@ -1316,18 +1191,9 @@ const SlideCreator = {
     const favoriteButton = this.createFavoriteButton(item);
     buttonContainer.append(detailButton, playButton, favoriteButton);
 
-    slide.append(
-      logoContainer,
-      backdropContainer,
-      gradientOverlay,
-      featuredContent,
-      plotContainer,
-      infoContainer,
-      genreElement,
-      buttonContainer,
-    );
+    slide.append(logoContainer, backdropContainer, gradientOverlay, featuredContent, plotContainer, infoContainer, genreElement, buttonContainer);
 
-    return { slide, videoId, trailerContainer };
+    return { slide };
   },
 
   /**
@@ -1352,19 +1218,14 @@ const SlideCreator = {
     if (typeof communityRating === "number") {
       const container = SlideUtils.createElement("div", {
         className: "star-rating-container",
-        innerHTML: `<span class="material-icons community-rating-star star" aria-hidden="true"></span>${communityRating.toFixed(
-          1,
-        )}`,
+        innerHTML: `<span class="material-icons community-rating-star star" aria-hidden="true"></span>${communityRating.toFixed(1)}`,
       });
       miscInfo.appendChild(container);
       miscInfo.appendChild(SlideUtils.createSeparator());
     }
 
     if (typeof criticRating === "number") {
-      const svgIcon =
-        criticRating < 60
-          ? CONFIG.IMAGE_SVG.rottenTomato
-          : CONFIG.IMAGE_SVG.freshTomato;
+      const svgIcon = criticRating < 60 ? CONFIG.IMAGE_SVG.rottenTomato : CONFIG.IMAGE_SVG.freshTomato;
       const container = SlideUtils.createElement("div", {
         className: "critic-rating",
         innerHTML: `${svgIcon}${criticRating.toFixed(0)}%`,
@@ -1402,10 +1263,7 @@ const SlideCreator = {
         const seasonText =
           seasonCount <= 1
             ? LocalizationUtils.getLocalizedString("Season", "Season")
-            : LocalizationUtils.getLocalizedString(
-                "TypeOptionPluralSeason",
-                "Seasons",
-              );
+            : LocalizationUtils.getLocalizedString("TypeOptionPluralSeason", "Seasons");
         container.innerHTML = `${seasonCount} ${seasonText}`;
       } else {
         const milliseconds = runtime / 10000;
@@ -1413,11 +1271,7 @@ const SlideCreator = {
         const endTime = new Date(currentTime.getTime() + milliseconds);
         const options = { hour: "2-digit", minute: "2-digit", hour12: false };
         const formattedEndTime = endTime.toLocaleTimeString([], options);
-        const endsAtText = LocalizationUtils.getLocalizedString(
-          "EndsAtValue",
-          "Ends at {0}",
-          formattedEndTime,
-        );
+        const endsAtText = LocalizationUtils.getLocalizedString("EndsAtValue", "Ends at {0}", formattedEndTime);
         container.innerText = endsAtText;
       }
       miscInfo.appendChild(container);
@@ -1436,8 +1290,8 @@ const SlideCreator = {
     return SlideUtils.createElement("button", {
       className: "detailButton btnPlay play-button",
       innerHTML: `
-      <span class="play-text">${playText}</span>
-    `,
+    <span class="play-text">${playText}</span>
+  `,
       tabIndex: "0",
       onclick: (e) => {
         e.preventDefault();
@@ -1460,9 +1314,7 @@ const SlideCreator = {
         e.preventDefault();
         e.stopPropagation();
         if (window.Emby && window.Emby.Page) {
-          Emby.Page.show(
-            `/details?id=${itemId}&serverId=${STATE.jellyfinData.serverId}`,
-          );
+          Emby.Page.show(`/details?id=${itemId}&serverId=${STATE.jellyfinData.serverId}`);
         } else {
           window.location.href = `#/details?id=${itemId}&serverId=${STATE.jellyfinData.serverId}`;
         }
@@ -1519,11 +1371,6 @@ const SlideCreator = {
    * @param {string} itemId - Item ID
    * @returns {Promise<HTMLElement>} Created slide element
    */
-  /**
-   * Creates a slide for an item and adds it to the container
-   * @param {string} itemId - Item ID
-   * @returns {Promise<HTMLElement>} Created slide element
-   */
   async createSlideForItemId(itemId) {
     try {
       if (STATE.slideshow.createdSlides[itemId]) {
@@ -1533,78 +1380,10 @@ const SlideCreator = {
       const container = SlideUtils.getOrCreateSlidesContainer();
       const item = await ApiUtils.fetchItemDetails(itemId);
 
-      const { slide, videoId, trailerContainer } = this.createSlideElement(
-        item,
-        item.Type === "Movie" ? "Movie" : "TV Show",
-      );
+      const { slide } = this.createSlideElement(item, item.Type === "Movie" ? "Movie" : "TV Show");
 
       container.appendChild(slide);
       STATE.slideshow.createdSlides[itemId] = true;
-
-      // if (videoId) {
-      //   loadYouTubeAPI().then((YT) => {
-      //     if (!document.getElementById(`trailer-${itemId}`)) return;
-
-      //     STATE.slideshow.players[itemId] = new YT.Player(
-      //       `yt-player-${itemId}`,
-      //       {
-      //         videoId: videoId,
-      //         playerVars: {
-      //           autoplay: 0,
-      //           controls: 0,
-      //           rel: 0,
-      //           fs: 0,
-      //           showinfo: 0,
-      //           modestbranding: 1,
-      //         },
-      //         events: {
-      //           onStateChange: (e) =>
-      //             SlideshowManager.onPlayerStateChange(
-      //               e,
-      //               itemId,
-      //               trailerContainer,
-      //             ),
-      //           onReady: (e) => e.target.mute(),
-      //         },
-      //       },
-      //     );
-      //   });
-      // }
-
-      if (videoId) {
-        const startTime = await ApiUtils.getSkipSegments(videoId);
-
-        loadYouTubeAPI().then((YT) => {
-          if (!document.getElementById(`trailer-${itemId}`)) return;
-
-          STATE.slideshow.players[itemId] = new YT.Player(
-            `yt-player-${itemId}`,
-            {
-              videoId: videoId,
-              playerVars: {
-                autoplay: 0,
-                controls: 0,
-                disablekb: 1,
-                fs: 0,
-                iv_load_policy: 3,
-                modestbranding: 1,
-                rel: 0,
-                showinfo: 0,
-                start: startTime,
-              },
-              events: {
-                onStateChange: (e) =>
-                  SlideshowManager.onPlayerStateChange(
-                    e,
-                    itemId,
-                    trailerContainer,
-                  ),
-                onReady: (e) => e.target.mute(),
-              },
-            },
-          );
-        });
-      }
 
       return slide;
     } catch (error) {
@@ -1651,9 +1430,7 @@ const SlideshowManager = {
     if (totalItems <= numDots) {
       activeDotIndex = currentIndex;
     } else {
-      activeDotIndex = Math.floor(
-        (currentIndex % numDots) * (numDots / numDots),
-      );
+      activeDotIndex = Math.floor((currentIndex % numDots) * (numDots / numDots));
     }
 
     dots.forEach((dot, index) => {
@@ -1669,13 +1446,9 @@ const SlideshowManager = {
     STATE.slideshow.isMuted = !STATE.slideshow.isMuted;
 
     const btnIcon = document.querySelector(".volume-toggle i");
-    if (btnIcon)
-      btnIcon.textContent = STATE.slideshow.isMuted
-        ? "volume_off"
-        : "volume_up";
+    if (btnIcon) btnIcon.textContent = STATE.slideshow.isMuted ? "volume_off" : "volume_up";
 
-    const currentId =
-      STATE.slideshow.itemIds[STATE.slideshow.currentSlideIndex];
+    const currentId = STATE.slideshow.itemIds[STATE.slideshow.currentSlideIndex];
     const player = STATE.slideshow.players[currentId];
 
     if (player && typeof player.setVolume === "function") {
@@ -1698,33 +1471,22 @@ const SlideshowManager = {
 
     if (STATE.slideshow.slideInterval) STATE.slideshow.slideInterval.stop();
 
-    const prevItemId =
-      STATE.slideshow.itemIds[STATE.slideshow.currentSlideIndex];
+    const prevItemId = STATE.slideshow.itemIds[STATE.slideshow.currentSlideIndex];
     if (prevItemId && STATE.slideshow.players[prevItemId]) {
       try {
-        if (
-          typeof STATE.slideshow.players[prevItemId].pauseVideo === "function"
-        ) {
+        if (typeof STATE.slideshow.players[prevItemId].pauseVideo === "function") {
           STATE.slideshow.players[prevItemId].pauseVideo();
-          if (
-            typeof STATE.slideshow.players[prevItemId].seekTo === "function"
-          ) {
+          if (typeof STATE.slideshow.players[prevItemId].seekTo === "function") {
             STATE.slideshow.players[prevItemId].seekTo(0);
           }
         }
         STATE.slideshow.isVideoPlaying = false;
 
-        const prevSlide = document.querySelector(
-          `.slide[data-item-id="${prevItemId}"]`,
-        );
+        const prevSlide = document.querySelector(`.slide[data-item-id="${prevItemId}"]`);
         if (prevSlide) {
-          prevSlide
-            .querySelector(".video-container")
-            ?.classList.remove("active");
+          prevSlide.querySelector(".video-container")?.classList.remove("active");
           prevSlide.querySelector(".backdrop")?.classList.remove("with-video");
-          prevSlide
-            .querySelector(".plot-container")
-            ?.classList.remove("with-video");
+          prevSlide.querySelector(".plot-container")?.classList.remove("with-video");
         }
       } catch (e) {}
     }
@@ -1734,11 +1496,8 @@ const SlideshowManager = {
     index = Math.max(0, Math.min(index, STATE.slideshow.totalItems - 1));
     const currentItemId = STATE.slideshow.itemIds[index];
 
-    let currentSlide = document.querySelector(
-      `.slide[data-item-id="${currentItemId}"]`,
-    );
-    if (!currentSlide)
-      currentSlide = await SlideCreator.createSlideForItemId(currentItemId);
+    let currentSlide = document.querySelector(`.slide[data-item-id="${currentItemId}"]`);
+    if (!currentSlide) currentSlide = await SlideCreator.createSlideForItemId(currentItemId);
 
     const prevVisible = container.querySelector(".slide.active");
     if (prevVisible) prevVisible.classList.remove("active");
@@ -1754,18 +1513,11 @@ const SlideshowManager = {
     this.preloadAdjacentSlides(index);
 
     const itemData = STATE.slideshow.loadedItems[currentItemId];
-    const hasTrailerData =
-      CONFIG.enableTrailers &&
-      itemData &&
-      itemData.RemoteTrailers &&
-      itemData.RemoteTrailers.length > 0;
+    const hasTrailerData = CONFIG.enableTrailers && itemData && itemData.RemoteTrailers && itemData.RemoteTrailers.length > 0;
 
     if (hasTrailerData) {
       setTimeout(() => {
-        if (
-          STATE.slideshow.currentSlideIndex === index &&
-          !STATE.slideshow.isPaused
-        ) {
+        if (STATE.slideshow.currentSlideIndex === index && !STATE.slideshow.isPaused) {
           const player = STATE.slideshow.players[currentItemId];
 
           if (player && typeof player.playVideo === "function") {
@@ -1903,9 +1655,7 @@ const SlideshowManager = {
 
         delete STATE.slideshow.loadedItems[itemId];
 
-        const slide = document.querySelector(
-          `.slide[data-item-id="${itemId}"]`,
-        );
+        const slide = document.querySelector(`.slide[data-item-id="${itemId}"]`);
         if (slide) slide.remove();
 
         delete STATE.slideshow.createdSlides[itemId];
@@ -1919,8 +1669,7 @@ const SlideshowManager = {
     STATE.slideshow.isPaused = !STATE.slideshow.isPaused;
     const pauseButton = document.querySelector(".pause-button");
 
-    const currentId =
-      STATE.slideshow.itemIds[STATE.slideshow.currentSlideIndex];
+    const currentId = STATE.slideshow.itemIds[STATE.slideshow.currentSlideIndex];
     const player = STATE.slideshow.players[currentId];
 
     if (STATE.slideshow.isPaused) {
@@ -1936,10 +1685,7 @@ const SlideshowManager = {
     } else {
       if (STATE.slideshow.slideInterval) STATE.slideshow.slideInterval.start();
       pauseButton.innerHTML = '<i class="material-icons">pause</i>';
-      const pauseLabel = LocalizationUtils.getLocalizedString(
-        "ButtonPause",
-        "Pause",
-      );
+      const pauseLabel = LocalizationUtils.getLocalizedString("ButtonPause", "Pause");
       pauseButton.setAttribute("aria-label", pauseLabel);
       pauseButton.setAttribute("title", pauseLabel);
 
@@ -2062,13 +1808,9 @@ const SlideshowManager = {
       if (container) container.classList.remove("active");
       if (backdrop) backdrop.classList.remove("with-video");
       if (plotContainer) plotContainer.classList.remove("with-video");
-      if (STATE.slideshow.slideInterval)
-        STATE.slideshow.slideInterval.restart();
+      if (STATE.slideshow.slideInterval) STATE.slideshow.slideInterval.restart();
       this.nextSlide();
-    } else if (
-      event.data === YT.PlayerState.PAUSED ||
-      event.data === YT.PlayerState.CUED
-    ) {
+    } else if (event.data === YT.PlayerState.PAUSED || event.data === YT.PlayerState.CUED) {
       STATE.slideshow.isVideoPlaying = false;
     }
   },
@@ -2243,10 +1985,7 @@ const slidesInit = async () => {
             const image = entry.target;
             const highQualityUrl = image.getAttribute("data-high-quality");
 
-            if (
-              highQualityUrl &&
-              image.closest(".slide").style.opacity === "1"
-            ) {
+            if (highQualityUrl && image.closest(".slide").style.opacity === "1") {
               requestQueue.push({
                 url: highQualityUrl,
                 callback: () => {
@@ -2341,8 +2080,7 @@ const initPageVisibilityHandler = () => {
       if (STATE.slideshow.slideInterval) {
         STATE.slideshow.slideInterval.stop();
       }
-      const currentItemId =
-        STATE.slideshow.itemIds[STATE.slideshow.currentSlideIndex];
+      const currentItemId = STATE.slideshow.itemIds[STATE.slideshow.currentSlideIndex];
       if (currentItemId && STATE.slideshow.players[currentItemId]) {
         const player = STATE.slideshow.players[currentItemId];
         if (typeof player.pauseVideo === "function") {
@@ -2357,13 +2095,8 @@ const initPageVisibilityHandler = () => {
     } else {
       console.log("Tab active - resuming slideshow");
       if (!STATE.slideshow.isPaused) {
-        const currentItemId =
-          STATE.slideshow.itemIds[STATE.slideshow.currentSlideIndex];
-        if (
-          wasVideoPlayingBeforeHide &&
-          currentItemId &&
-          STATE.slideshow.players[currentItemId]
-        ) {
+        const currentItemId = STATE.slideshow.itemIds[STATE.slideshow.currentSlideIndex];
+        if (wasVideoPlayingBeforeHide && currentItemId && STATE.slideshow.players[currentItemId]) {
           const player = STATE.slideshow.players[currentItemId];
           if (typeof player.playVideo === "function") {
             try {
